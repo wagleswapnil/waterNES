@@ -32,7 +32,7 @@ class Free_Energy:
         if self.directory_ligB == None:
             self.upper_edge(self.directory_ligA)
             self.lower_edge(self.directory_ligA)
-            self.free_energies.update(self.calculate_nes_edges(self.directory_ligA))    # NES Edge
+            #self.free_energies.update(self.calculate_nes_edges(self.directory_ligA))    # NES Edge
         else:
             self.lower_edge(self.directory_ligB)
         self.write_energies()
@@ -59,7 +59,6 @@ class Free_Energy:
                     full_u_nk = full_u_nk.drop((0.0, 0.0, 0.0), axis=1)
 
                 u_nk = slicing(full_u_nk, lower=2000)
-                print(u_nk.shape)
                 if subsample:
                     u_nk_all_stages.append(
                         statistical_inefficiency(
@@ -70,7 +69,6 @@ class Free_Energy:
                     )
                 else:
                     u_nk_all_stages.append(u_nk)
-                print(stage, u_nk.shape, alchemlyb.concat(u_nk_all_stages).shape)
         return MBAR().fit(alchemlyb.concat(u_nk_all_stages))
 
     def calculate_mbar(self,
@@ -210,7 +208,6 @@ class Free_Energy:
     # Molar concentration of water:
     #   55.5 mol / L == 55.5 mol / (10^24 nm^3) == 55.5 * 6.022 * 10^23 / (10^24 nm^3)
     #                == 55.5 * 0.6022 nm^-3
-
         return {
             "Edge F": FreeEnergyEstimate(
                 value=edge_f,
@@ -269,8 +266,6 @@ class Free_Energy:
                 free_energies[f"Work edge {edge}"] = None
         return free_energies
 
-
-
     def upper_edge(self, cycle_directory):
         self.free_energies.update(
             self.calculate_upper_edge_free_energy(
@@ -291,7 +286,6 @@ class Free_Energy:
         )
         return
 
-
     def write_energies(self):
         sum_cycle = 0.0
         error_cycle = 0.0
@@ -301,6 +295,4 @@ class Free_Energy:
                 sum_cycle = sum_cycle + value.value
                 error_cycle = error_cycle + value.error
         print(f"Edge A   {round(-1 * sum_cycle, 3)} +- {round(error_cycle, 3)} kcal/mol \t from cycle closure")
-
-
-
+        return

@@ -9,7 +9,7 @@ from utils import calculate_distances, get_pocket_selection_string, get_pocket_r
 
 class Reading_analysis:
     def __init__(self, args):
-        print("reading information...")
+        print("reading the information...")
         #self.fe_option=args.fe_option
         #self.cycle_directory=args.directory
         self.system=args.system
@@ -64,19 +64,21 @@ class Reading_analysis:
                 self.analysis["distances"] = pickle.load(in_file)
                 distances = self.analysis["distances"]
             in_file.close()
-        else:
-            for stage in all_stages:
+        for stage in all_stages:
+            if f"stage{stage}" in distances.keys():
+                continue
+            else:
                 trajectory = self.load_universe(
-                    topology=f"{self.cycle_directory}/stage{stage}/prod/topol.tpr",
-                    trajectory=f"{self.cycle_directory}/stage{stage}/prod/traj_comp.xtc",
+                        topology=f"{self.cycle_directory}/stage{stage}/prod/topol.tpr",
+                        trajectory=f"{self.cycle_directory}/stage{stage}/prod/traj_comp.xtc",
                     )
                 distances[f"stage{stage}"] = calculate_distances(
                         universe=trajectory, pocket_selection_string=pocket_selection_string
                     )
-                self.analysis["distances"] = distances
-                with open(f"analysis{self.system}_dist.pickle", "wb") as out_file:
-                    pickle.dump(self.analysis["distances"], out_file)
-                out_file.close()
+            self.analysis["distances"] = distances
+        with open(f"analysis{self.system}_dist.pickle", "wb") as out_file:
+            pickle.dump(self.analysis["distances"], out_file)
+        out_file.close()
         return distances
 
     def trapped_calcs(self):
@@ -121,9 +123,10 @@ class Reading_analysis:
                 with open(f"analysis{self.system}_ppocket.pickle", "rb") as in_file:
                     position_restraint_energy = pickle.load(in_file)
                 in_file.close()
-            else:
-                for stage in all_non_restraint_stages:
-                # Load trajectory
+            for stage in all_non_restraint_stages:
+                if f"stage{stage}" in position_restraint_energy.keys():
+                    continue
+                else:
                     trajectory = self.load_universe(
                         topology=f"{self.cycle_directory}/stage{stage}/prod/topol.tpr",
                         trajectory=f"{self.cycle_directory}/stage{stage}/prod/traj_comp.xtc",
@@ -155,10 +158,9 @@ class Reading_analysis:
                             force_constant=force_constant,
                             distance=distances,
                         ).sum()
-                #breakpoint()
-                with open(f"analysis{self.system}_ppocket.pickle", "wb") as out_file:
-                    pickle.dump(position_restraint_energy, out_file)
-                out_file.close()
+            with open(f"analysis{self.system}_ppocket.pickle", "wb") as out_file:
+                pickle.dump(position_restraint_energy, out_file)
+            out_file.close()
         return position_restraint_energy
 
     def make_analysis(self):
@@ -207,15 +209,8 @@ class Reading_analysis:
         return status
 
     def determine_stages(self):
-        """        fe_option_to_stages = dict([
-                ( '1' , "1, 4, 5, 6, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6, 7" ),
-                ( '2' , "1, 2, 3, 4, 5, 6, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6, 7" ),
-                ( '3' , "1, 2, 3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 4, 5, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6, 7" ),
-                ( '4' , "1, 4, 5, 6, 7, 8")
-                ( '5' , "1, 2, 3, 4, 5, 6, 7, 8")
-        ]) """
         schemes_to_Ustages = {"1": "1, 4", "2": "1, 2, 3, 4", "3": "1, 2, 3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 4"}
-        schemes_to_Lstages = {"1": "7, 6, 5", "2": "7, 6, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 5"}
+        schemes_to_Lstages = {"1": "7, 6, 5", "2": "7, 6, 6.7, 6.6, 6.5, 6.4, 6.3, 6.2, 6.1, 5"}
         Ustages = schemes_to_Ustages[self.Uscheme]
         Lstages = schemes_to_Lstages[self.Lscheme]
         stages = Ustages + ", " + Lstages

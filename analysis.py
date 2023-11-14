@@ -3,7 +3,7 @@ from utils import *
 from reading_file import Reading_analysis
 from processing_data import Processing_Data
 from calculate_free_energy import Free_Energy
-
+from plot_distances import plot_dists
 
 
 def input_data():
@@ -44,8 +44,9 @@ def input_data():
             type=str, 
             help="Scheme for upper edge: 1 for 1-4, 2 for 1-2-3-4, 3 for 1-2-3-3.1-3.2...-4", 
             required=False, default="2")
-    parser.add_argument("--Lscheme", action="store_true", 
-            help="Scheme for lower edge: 1 for 6-8, 2 for 6-6.1-6.2-....-8", 
+    parser.add_argument("--Lscheme", 
+            type=str,
+            help="Scheme for lower edge: 1 for 5-7, 2 for 5-6-6.1-6.2-....-7", 
             required=False, default="1")
     parser.add_argument("--read", action="store_true",
             help="Just read the pickle file that stores the analysis",
@@ -59,8 +60,7 @@ def input_data():
 
 def calculate_free_energies(args, stages):
     free_energies=Free_Energy(args, stages)
-
-
+    return
 
 def reading_data(args):
     reading_analysis = Reading_analysis(args)
@@ -78,6 +78,8 @@ def main():
     reading_analysis = reading_data(args)
     processing_data(reading_analysis)
     calculate_free_energies(args, reading_analysis.stages)
+    plot_dists(reading_analysis.metadata)
+    return
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,5 @@
 import pandas as pd
 import os, sys
-import pickle
 import pathlib
 import numpy as np
 np.set_printoptions(suppress=True)
@@ -26,7 +25,7 @@ class Processing_Data:
             print(f"{len(mask)/len(closest_water) * 100}% data used")
         else:
             print(f"water positions for stage {current_stage} is not calculated")
-            mask = numpy.full((601, 1), True)
+            mask = np.full((601), True)
 
         return mask 
 
@@ -46,14 +45,14 @@ class Processing_Data:
                 #assert time not in contents
                 contents[time] = np.array([float(entry) for entry in entries[1:]])
         legends=Custom_Legends()
-        if int(current_stage) < 5:
+        if int(float(current_stage)) < 5:
             if self.reading_analysis.Uscheme == "1":
                 legend = legends.legend3
             elif self.reading_analysis.Uscheme == "2":
                 legend = legends.legend2
             elif self.reading_analysis.Uscheme == "3":
                 legend = legends.legend1
-        elif int(current_stage) > 4:
+        elif int(float(current_stage)) > 4:
             if self.reading_analysis.Lscheme == "1":
                 legend = legends.legend2
             elif self.reading_analysis.Lscheme == "2":
@@ -194,7 +193,6 @@ class Processing_Data:
             #    positional_restraint_energy_for_stage = None
             #    print(f"Positional restraint energy for stage {stage.strip()} doesn't exist")
             #continue
-            #breakpoint()
             #quit()
             #mod_file = pathlib.Path(f"{self.reading_analysis.cycle_directory}/stage{stage}/prod/dhdl_{self.reading_analysis.Uscheme}{self.reading_analysis.Lscheme}.xvg")
             self.write_xvg(current_stage=stage.strip())
