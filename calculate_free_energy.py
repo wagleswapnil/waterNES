@@ -58,7 +58,7 @@ class Free_Energy:
                 if drop_first:
                     full_u_nk = full_u_nk.drop((0.0, 0.0, 0.0), axis=1)
 
-                u_nk = slicing(full_u_nk, lower=2000)
+                u_nk = slicing(full_u_nk)
                 if subsample:
                     u_nk_all_stages.append(
                         statistical_inefficiency(

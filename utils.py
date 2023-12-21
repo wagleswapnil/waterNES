@@ -4,7 +4,7 @@ from MDAnalysis.analysis import distances as mda_distances
 
 def get_pocket_restraint_force_constant(cycle_directory: str, units: str) -> float:
     restraint_force_constant = None
-    with open(f"{cycle_directory}/../restraints/posre_pocket_on.itp") as itp_file:
+    with open(f"{cycle_directory}/../posre_pocket_on.itp") as itp_file:
         for line in itp_file:
             if "position_restraints" in line or line.startswith(";"):
                 continue
@@ -23,7 +23,7 @@ def vdw_repulsive_energy(c12: float, distance: np.ndarray) -> np.ndarray:
 
 def get_solvent_restraint_c12(cycle_directory: str, units: str) -> float:
     restraint_c12 = None
-    with open(f"{cycle_directory}/../restraints/system.top") as top_file:
+    with open(f"{cycle_directory}/../system.top") as top_file:
         block_found = False
         for line in top_file:
             if "nonbond_params" in line:
@@ -76,7 +76,7 @@ def get_conversion_factor(input_units: str, output_units: str) -> float:
 
 def get_water_restraint_force_constant(cycle_directory: str, units: str) -> float:
     restraint_force_constant = None
-    with open(f"{cycle_directory}/../restraints/system.top") as top_file:
+    with open(f"{cycle_directory}/../system.top") as top_file:
         block_found = False
         for line in top_file:
             if "intermolecular_interactions" in line:

@@ -166,7 +166,7 @@ class Reading_analysis:
     def make_analysis(self):
         reference = self.load_universe(
         topology=f"{self.cycle_directory}/stage1/min/topol.tpr",
-        trajectory=f"{self.cycle_directory}/../restraints/minimized.gro",
+        trajectory=f"{self.cycle_directory}/../minimized.gro",
     )
         pocket_selection_string = get_pocket_selection_string(reference)
         all_stages= [
