@@ -6,6 +6,8 @@ import MDAnalysis as mda
 from MDAnalysis import transformations as mda_transformations
 from MDAnalysis.analysis import distances as mda_distances
 from utils import calculate_distances, get_pocket_selection_string, get_pocket_restraint_force_constant, simple_restraint, get_water_restraint_force_constant, get_solvent_restraint_c12, vdw_repulsive_energy
+from plot_distances import plot_dists
+
 
 class Reading_analysis:
     def __init__(self, args):
@@ -26,7 +28,6 @@ class Reading_analysis:
         self.analysis = {}
         self.metadata, self.energies = self.engine()
 
-
     def add_workflow(self, universe):
         protein_and_ligand = universe.select_atoms("protein or resname %s" % self.ligand)
         water_and_virtual_site = universe.select_atoms("resname MOL or resname ATT")
@@ -44,9 +45,7 @@ class Reading_analysis:
             mda_transformations.wrap(water_and_virtual_site, compound="atoms"),
         ]
         universe.trajectory.add_transformations(*workflow)
-
         return universe
-
 
     def load_universe(self, topology, trajectory, transfer_to_memory=True, step=1, workflow=True):
         universe = mda.Universe(topology, trajectory)
@@ -111,6 +110,18 @@ class Reading_analysis:
                 c12=restraint_c12,
                 distance=self.analysis["distances"]["stage1"]["second closest solvent"]
             )
+            solvent_restraint_energy_new += vdw_repulsive_energy(
+                c12=restraint_c12,
+                distance=self.analysis["distances"]["stage1"]["third closest solvent"]
+            ) 
+            solvent_restraint_energy_new += vdw_repulsive_energy(
+                c12=restraint_c12,
+                distance=self.analysis["distances"]["stage1"]["fourth closest solvent"]
+            ) 
+            solvent_restraint_energy_new += vdw_repulsive_energy(
+                c12=restraint_c12,
+                distance=self.analysis["distances"]["stage1"]["fifth closest solvent"]
+            )
             solvent_restraint_energy["stage1"] = np.array(
                 [solvent_restraint_energy_old, solvent_restraint_energy_new]
             )
@@ -166,7 +177,7 @@ class Reading_analysis:
     def make_analysis(self):
         reference = self.load_universe(
         topology=f"{self.cycle_directory}/stage1/min/topol.tpr",
-        trajectory=f"{self.cycle_directory}/../minimized.gro",
+        trajectory=f"{self.cycle_directory}/../restraints/minimized.gro",
     )
         pocket_selection_string = get_pocket_selection_string(reference)
         all_stages= [
@@ -178,6 +189,7 @@ class Reading_analysis:
                 for stage in all_stages if stage != "4" and stage != "5"
         ]
         distances = self.distance_calcs(all_stages, pocket_selection_string)
+        plot_dists(distances, self.system)
         trapped_restraint_energy, solvent_restraint_energy = self.trapped_calcs()
         pocket_restraints = self.pocket_restraints_calcs(all_non_restraint_stages, pocket_selection_string, reference)
         return distances, trapped_restraint_energy, solvent_restraint_energy, pocket_restraints

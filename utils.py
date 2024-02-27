@@ -4,7 +4,7 @@ from MDAnalysis.analysis import distances as mda_distances
 
 def get_pocket_restraint_force_constant(cycle_directory: str, units: str) -> float:
     restraint_force_constant = None
-    with open(f"{cycle_directory}/../posre_pocket_on.itp") as itp_file:
+    with open(f"{cycle_directory}/../restraints/posre_pocket_on.itp") as itp_file:
         for line in itp_file:
             if "position_restraints" in line or line.startswith(";"):
                 continue
@@ -23,7 +23,7 @@ def vdw_repulsive_energy(c12: float, distance: np.ndarray) -> np.ndarray:
 
 def get_solvent_restraint_c12(cycle_directory: str, units: str) -> float:
     restraint_c12 = None
-    with open(f"{cycle_directory}/../system.top") as top_file:
+    with open(f"{cycle_directory}/../restraints/system.top") as top_file:
         block_found = False
         for line in top_file:
             if "nonbond_params" in line:
@@ -76,7 +76,7 @@ def get_conversion_factor(input_units: str, output_units: str) -> float:
 
 def get_water_restraint_force_constant(cycle_directory: str, units: str) -> float:
     restraint_force_constant = None
-    with open(f"{cycle_directory}/../system.top") as top_file:
+    with open(f"{cycle_directory}/../restraints/system.top") as top_file:
         block_found = False
         for line in top_file:
             if "intermolecular_interactions" in line:
@@ -118,8 +118,8 @@ def get_pocket_selection_string(universe):
 def calculate_distances(universe, pocket_selection_string):
     attachment = universe.select_atoms("resname ATT")
     trapped_water = universe.select_atoms("resname MOL and name O")
-    solvent = universe.select_atoms("resname HOH and name O")
-    all_waters = universe.select_atoms("(resname HOH or resname MOL) and name O")
+    solvent = universe.select_atoms("resname HOH  and name O")
+#    all_waters = universe.select_atoms("(resname HOH or resname MOL) and name O")
     pocket = universe.select_atoms(pocket_selection_string)
     distance_dict = {
         "trapped water": [],
@@ -128,6 +128,9 @@ def calculate_distances(universe, pocket_selection_string):
         "closest water": [],
         "closest solvent": [],
         "second closest solvent": [],
+        "third closest solvent": [],
+        "fourth closest solvent": [],
+        "fifth closest solvent": [],
         "pocket": [],
     }
     for _ in universe.trajectory:
@@ -135,21 +138,23 @@ def calculate_distances(universe, pocket_selection_string):
             attachment.positions,
             trapped_water.positions,
             box=universe.dimensions,
+            backend='serial'
         ).flatten()
         distance_solvent = np.sort(
             mda_distances.distance_array(
                 attachment.positions,
                 solvent.positions,
                 box=universe.dimensions,
+                backend='serial'
             ).flatten()
         )
-        distance_all_waters= np.sort(
-            mda_distances.distance_array(
-                attachment.positions,
-                all_waters.positions,
-                box=universe.dimensions,
-            ).flatten()
-        )
+#        distance_all_waters= np.sort(
+#            mda_distances.distance_array(
+#                attachment.positions,
+#                all_waters.positions,
+#                box=universe.dimensions,
+#            ).flatten()
+#        )
 
         distance_pocket = mda_distances.distance_array(
             attachment.positions,
@@ -157,14 +162,25 @@ def calculate_distances(universe, pocket_selection_string):
             box=universe.dimensions,
         )
 
-        distance_dict["trapped water"].append(distance_trapped_water[0])
+        distance_dict["trapped water"].append(distance_trapped_water)
         distance_dict["solvent water 1st"].append(distance_solvent[0])
         distance_dict["solvent water 2nd"].append(distance_solvent[1])
-        distance_dict["closest water"].append(
-            min(distance_trapped_water[0], distance_solvent[0])
-        )
-        distance_dict["closest solvent"].append(distance_all_waters[1])
-        distance_dict["second closest solvent"].append(distance_all_waters[2])
+
+        distance_solvent = distance_solvent[:5]
+        distance_solvent = np.sort(np.concatenate((distance_solvent, distance_trapped_water), axis=0))
+
+
+#        distance_dict["closest water"].append(
+#            min(distance_trapped_water, distance_solvent[0])
+#        )
+        distance_dict["closest water"].append(distance_solvent[0])
+        distance_dict["closest solvent"].append(distance_solvent[1])
+        distance_dict["second closest solvent"].append(distance_solvent[2])
+        distance_dict["third closest solvent"].append(distance_solvent[3])
+        distance_dict["fourth closest solvent"].append(distance_solvent[4])
+        distance_dict["fifth closest solvent"].append(distance_solvent[5])
+#        distance_dict["second closest solvent"].append(np.array2string(distance_solvent[2:], precision=2, separator=','))
+#        print(type(np.array2string(distance_solvent[2:], precision=2, separator=',')), distance_dict["second closest solvent"])
         distance_dict["pocket"].append(distance_pocket)
 
     for key in distance_dict:

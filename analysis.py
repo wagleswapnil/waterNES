@@ -78,7 +78,7 @@ def main():
     reading_analysis = reading_data(args)
     processing_data(reading_analysis)
     calculate_free_energies(args, reading_analysis.stages)
-    plot_dists(reading_analysis.metadata)
+    #plot_dists(reading_analysis.metadata)
     return
 
 if __name__ == "__main__":

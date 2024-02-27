@@ -15,16 +15,22 @@ class Processing_Data:
 
 
     def water_position_analysis(self, current_stage):
+        mask = np.full((601), False)
         if f"stage{current_stage}" in self.reading_analysis.metadata['distances']:
+
             print(f"checking water positions for stage {current_stage}")
             trapped_water = self.reading_analysis.metadata['distances'][f"stage{current_stage}"]['trapped water']
             closest_water = self.reading_analysis.metadata['distances'][f"stage{current_stage}"]['closest water']
             closest_solvent = self.reading_analysis.metadata['distances'][f"stage{current_stage}"]['closest solvent']
-            eq_dist = trapped_water[0]
-            mask = np.logical_and(closest_water < eq_dist + 3, closest_solvent - closest_water > 1)
-            print(f"{len(mask)/len(closest_water) * 100}% data used")
+            first_solvent = self.reading_analysis.metadata['distances'][f"stage{current_stage}"]['solvent water 1st']
+            eq_dist = self.reading_analysis.metadata['distances']['stage1']['trapped water'][0]
+            if int(float(current_stage)) <= 4:
+                mask = np.logical_and(closest_water <= eq_dist + 3, closest_solvent >= closest_water + 1)
+            elif int(float(current_stage)) >= 5:
+                mask = np.logical_and(1, first_solvent >= eq_dist + 3)
+            print(f"{round(mask.sum()/len(closest_water) * 100, 3)}% data used")
         else:
-            print(f"water positions for stage {current_stage} is not calculated")
+            print(f"water positions for stage {current_stage} is not calculated; taking all data from this stage")
             mask = np.full((601), True)
 
         return mask 
@@ -138,7 +144,7 @@ class Processing_Data:
         df_xvg_file['11p16'] = df_xvg_file['11p16'] - df_xvg_file['reference']
         df_xvg_file['11p32'] = df_xvg_file['11p32'] - df_xvg_file['reference']
         df_xvg_file['11p64'] = df_xvg_file['11p64'] - df_xvg_file['reference']
-        
+
         water_sanity_check = pd.array(self.water_position_analysis(current_stage), dtype ="boolean")
         df_xvg_file['water_check'] = water_sanity_check
         df_xvg_file = df_xvg_file[df_xvg_file['water_check']]

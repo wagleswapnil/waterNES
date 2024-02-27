@@ -5,21 +5,24 @@ import pathlib
 from typing import Dict, List, Optional, Tuple
 import warnings
 import alchemlyb
-sys.path.append('/dfs4/dmobley-lab/swapnilw/waterNES/')
+sys.path.append('/dfs9/dmobley-lab/swapnilw/waterNES/')
 from water_nes.analysis.free_energy_estimate import FreeEnergyEstimate
 from water_nes.analysis.nes_free_energy import calculate_nes_free_energy
 from alchemlyb.estimators import MBAR
 from alchemlyb.parsing.gmx import extract_u_nk
 from alchemlyb.postprocessors.units import get_unit_converter
 from alchemlyb.preprocessing import slicing, statistical_inefficiency
+from alchemlyb.visualisation import plot_mbar_overlap_matrix
 from MDAnalysis import transformations as mda_transformations
 from MDAnalysis.analysis import distances as mda_distances
 from pymbar.timeseries import ParameterError
 from utils import get_water_restraint_force_constant
+import matplotlib.pyplot as plt
 
 
 class Free_Energy:
     def __init__(self, args, stages):
+        self.system=args.system
         self.Uscheme=args.Uscheme
         self.Lscheme=args.Lscheme
         self.stages=stages
@@ -32,10 +35,11 @@ class Free_Energy:
         if self.directory_ligB == None:
             self.upper_edge(self.directory_ligA)
             self.lower_edge(self.directory_ligA)
-            #self.free_energies.update(self.calculate_nes_edges(self.directory_ligA))    # NES Edge
+            self.free_energies.update(self.calculate_nes_edges(self.directory_ligA))    # NES Edge
         else:
             self.lower_edge(self.directory_ligB)
         self.write_energies()
+        self.plot_and_save("/dfs9/dmobley-lab/swapnilw/openeye_colab/results")
 
     def calculate_mbar_inner(self,
     stages: List[str],
@@ -58,7 +62,7 @@ class Free_Energy:
                 if drop_first:
                     full_u_nk = full_u_nk.drop((0.0, 0.0, 0.0), axis=1)
 
-                u_nk = slicing(full_u_nk)
+                u_nk = slicing(full_u_nk, lower=0000)
                 if subsample:
                     u_nk_all_stages.append(
                         statistical_inefficiency(
@@ -208,6 +212,7 @@ class Free_Energy:
     # Molar concentration of water:
     #   55.5 mol / L == 55.5 mol / (10^24 nm^3) == 55.5 * 6.022 * 10^23 / (10^24 nm^3)
     #                == 55.5 * 0.6022 nm^-3
+        #breakpoint()
         return {
             "Edge F": FreeEnergyEstimate(
                 value=edge_f,
@@ -289,10 +294,45 @@ class Free_Energy:
     def write_energies(self):
         sum_cycle = 0.0
         error_cycle = 0.0
-        for key, value in self.free_energies.items():
+        for key, value in sorted(self.free_energies.items()):
             if "Edge" in key:
                 print(key, value)
                 sum_cycle = sum_cycle + value.value
                 error_cycle = error_cycle + value.error
         print(f"Edge A   {round(-1 * sum_cycle, 3)} +- {round(error_cycle, 3)} kcal/mol \t from cycle closure")
+        with open(f"analysis{self.system}.pickle", "wb") as out_file:
+            pickle.dump(self.free_energies, out_file)
+        out_file.close()
+
         return
+
+    def plot_and_save(self, out_path):
+        fig, axs = plt.subplot_mosaic(
+                [["upper", ".", "work", "work"],
+                    ["lower", "lower", "work", "work"],
+                    ["lower", "lower", "work", "work"]], 
+                layout="constrained",
+                )
+        fig.suptitle(f"NES, Matrix overlap Plots | System {self.system}")
+
+        if "upper edge overlap" in self.free_energies:
+            plot_mbar_overlap_matrix(self.free_energies['upper edge overlap'], ax=axs["upper"])
+
+        if "lower edge overlap" in self.free_energies:
+            plot_mbar_overlap_matrix(self.free_energies['lower edge overlap'], ax=axs["lower"])
+
+        if "Work edge E" in self.free_energies:
+            bins = np.linspace(int(min(np.min(self.free_energies['Work edge E']['forward'] * 0.239006), np.min(self.free_energies['Work edge E']['backward'] * 0.239006))/5) * 5, int(max(np.max(self.free_energies['Work edge E']['forward'] * 0.239006), np.max(self.free_energies['Work edge E']['backward'] * 0.239006))/5) * 5 + 5, 100)
+#                    max(self.free_energies['Work edge E']['forward'], self.free_energies['Work edge E']['backward'])/10 + 10, 100)
+            axs["work"].hist(self.free_energies['Work edge E']['forward'] * 0.239006, bins, alpha=0.5, label='forward')
+            axs["work"].hist(self.free_energies['Work edge E']['backward'] * 0.239006, bins, alpha=0.5, label='backward')
+            axs["work"].legend(loc='upper right')
+        
+        out_file_path = os.path.join(out_path, self.system.split('_')[0], f"overlap_plots{self.system.split('_')[1]}.png")
+        fig.savefig(out_file_path)
+
+
+
+
+
+
